@@ -5,20 +5,11 @@ import numpy as np
 
 from tqdm import tqdm
 from segment_anything import sam_model_registry, SamPredictor
+
 from tracking.deepsort_wrapper import DeepSORTWrapper
 from utils.video_utils import extract_video_frames, write_video
 from utils.evaluation import run_tracking_comparison
 
-OPENCV_OBJECT_TRACKERS = {
-    "csrt": cv2.legacy.TrackerCSRT_create,
-    "kcf": cv2.TrackerKCF_create,
-    "boosting": cv2.legacy.TrackerBoosting_create,
-    "mil": cv2.TrackerMIL_create,
-    "tld": cv2.legacy.TrackerTLD_create,
-    "medianflow": cv2.legacy.TrackerMedianFlow_create,
-    "mosse": cv2.legacy.TrackerMOSSE_create,
-    "deepsort": lambda: DeepSORTWrapper(model_path=args["deepsort_model"])
-}
 
 def parse_args():
     ap = argparse.ArgumentParser()
@@ -59,6 +50,17 @@ if __name__ == '__main__':
         device = "cuda"
     else:
         device = args["compute"]
+
+    OPENCV_OBJECT_TRACKERS = {
+        "csrt": cv2.legacy.TrackerCSRT_create,
+        "kcf": cv2.TrackerKCF_create,
+        "boosting": cv2.legacy.TrackerBoosting_create,
+        "mil": cv2.TrackerMIL_create,
+        "tld": cv2.legacy.TrackerTLD_create,
+        "medianflow": cv2.legacy.TrackerMedianFlow_create,
+        "mosse": cv2.legacy.TrackerMOSSE_create,
+        "deepsort": lambda: DeepSORTWrapper(model_path=args["deepsort_model"])
+    }
 
     tracker = OPENCV_OBJECT_TRACKERS[args["tracker"]]()
 
