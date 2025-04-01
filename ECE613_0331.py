@@ -23,7 +23,7 @@ def parse_args():
                     help="platform for computing")
     ap.add_argument("-d", "--deepsort_model", type=str, default="mars-small128.pb",
                     help="DeepSORT feature extractor model")
-    # This is for performance comparision
+    # performance comparison only
     ap.add_argument("--metrics", action="store_true",
                     help="Run metrics comparison between trackers")
     ap.add_argument("--trackers", nargs='+',
@@ -32,9 +32,10 @@ def parse_args():
     return vars(ap.parse_args())
 
 
-if __name__ == '__main__':
+def main():
+    sam_checkpoint = "sam_vit_l_0b3195.pth"
+    model_type = "vit_l"
     args = parse_args()
-
     if args["metrics"] and args["video"] and args["trackers"]:
         metrics_results = run_tracking_comparison(
             video_path=args["video"],
@@ -46,7 +47,7 @@ if __name__ == '__main__':
         exit()
 
     if args["compute"] == "cuda":
-        torch.cuda.set_device(0) # You can edit the GPU number here
+        torch.cuda.set_device(0)  # define GPU number
         device = "cuda"
     else:
         device = args["compute"]
@@ -65,8 +66,7 @@ if __name__ == '__main__':
     tracker = OPENCV_OBJECT_TRACKERS[args["tracker"]]()
 
     frame_list = extract_video_frames(args["video"], args["compress"])
-
-    # This is the Object Tracking part, with assigned tracker and bounding box drew by ROIselect, we worked out the bounding boxes for target object in the video.
+    # object tracking
     bbox_list = np.zeros((len(frame_list), 4))
     bbox = cv2.selectROI('Frame', frame_list[0], False)
     (x, y, w, h) = [int(v) for v in bbox]
@@ -82,16 +82,14 @@ if __name__ == '__main__':
             print('Warning: tracker failed.')
     print("Tracking Finished.")
 
-    # This is the SAM segmentation part, with the frames and bounding box of each frame, we generated the mask of object in each frame and combine it with grayscaled background
+    # SAM segmentation
     print("Running Segment Everything on Tracking Results ...")
-    sam_checkpoint = "sam_vit_l_0b3195.pth"
-    model_type = "vit_l"
+
     sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
     sam.to(device=device)
     predictor = SamPredictor(sam)
     input_boxes = torch.tensor(bbox_list, device=predictor.device)
 
-    i = 0
     output_frames = []
     for i in tqdm(range(len(frame_list)), desc="Segmenting frames"):
         frame = frame_list[i]
@@ -104,21 +102,23 @@ if __name__ == '__main__':
         # Reverse the mask and cut-out the background, grayscale the background part
         mask_inv = cv2.bitwise_not(mask)
         gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        gray_image = cv2.bitwise_and(gray_frame,gray_frame,mask = mask_inv)
+        gray_image = cv2.bitwise_and(gray_frame, gray_frame, mask=mask_inv)
         gray_bg = cv2.cvtColor(gray_image, cv2.COLOR_GRAY2BGR)
 
         # Draw the contour of object and cut-out the RGB version of object.
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         cv2.drawContours(frame, contours=contours, contourIdx=-1, color=(0, 255, 0), thickness=2)
-        color_fg = cv2.bitwise_and(frame,frame,mask = mask)
+        color_fg = cv2.bitwise_and(frame, frame, mask=mask)
 
-        # Combine the grayscale background and RGB frontgraound together
+        # Combine the grayscale background and RGB front ground together
         final_pic = cv2.add(color_fg,gray_bg)
-
         output_frames.append(final_pic)
-        i += 1
 
-    # Write the result into a new video.
+    # write the result into a new video
     output_video_path = args["video"].split(".")[0]+'_output.mp4'
     write_video(output_video_path, output_frames, fps=10)
+
+
+if __name__ == '__main__':
+    main()
 
