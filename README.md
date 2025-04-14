@@ -4,7 +4,7 @@
 
 ## Features
 
-- Supports DeepSORT and MOSSE trackers
+- Supports DeepSORT and filter-based trackers
 - Multiple ground-truth-free evaluation metrics:
   - Appearance Similarity
   - Bounding Box Stability
