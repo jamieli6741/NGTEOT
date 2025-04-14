@@ -33,7 +33,7 @@ def parse_args():
 
 
 def main():
-    sam_checkpoint = "sam_vit_l_0b3195.pth"
+    sam_checkpoint = "sam_vit_l_0b3195.pth"  # path to segment-anything pre-trained model
     model_type = "vit_l"
     args = parse_args()
     if args["metrics"] and args["video"] and args["trackers"]:
