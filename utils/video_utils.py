@@ -18,14 +18,14 @@ def extract_video_frames(video_path, compress_rate=5, resize_width=500):
 
     while vs.isOpened():
         ret, frame = vs.read()
-        if ret and frame_cnt % compress_rate == 0:
-            frame = imutils.resize(frame, resize_width)
-            frame_list.append(frame)
-            frame_cnt = 1
-        elif ret and frame_cnt % compress_rate != 0:
-            frame_cnt += 1
-        else:
+        if not ret:
             break
+
+        if frame_cnt % compress_rate == 0:
+            frame = imutils.resize(frame, width=resize_width)
+            frame_list.append(frame)
+
+        frame_cnt += 1
 
     frame_list = np.array(frame_list)
     vs.release()
